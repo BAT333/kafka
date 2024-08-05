@@ -1,0 +1,311 @@
+Produtores consumidores e o eager de patterns
+
+PRIMEIRA PARTE VAMOS FAZER DAR ALGUM TIPO DE ERRO OU FAZER COM QUE ALGO PARE NO FRAUDE
+
+Como fazer para enviar receber mensagem
+bom de fato é bem simples
+
+basta instanciar o serviço que manda mensagem no kafka
+    private final KafkaDispatcher<Order> dispatcher = new KafkaDispatcher<>();
+  var order =  record.value();
+        if(this.isFraud(order.getAmount())){
+            System.out.println("Order is a fraud");
+            try {
+                this.dispatcher.send("ECOMMERCE_NEW_ORDER_REJECTED",order.getOrderId(),order);
+            } catch (ExecutionException | InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }else{
+            System.out.println("Approved: "+ order);
+            try {
+                this.dispatcher.send("ECOMMERCE_NEW_ORDER_APPROVED",order.getOrderId(),order);
+            } catch (ExecutionException | InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+ai quando cliente recebe uma mensagem no fraude, podemos redirecionar para
+this.dispatcher.send("ECOMMERCE_NEW_ORDER_APPROVED",order.getOrderId(),order);
+passando para onde vc quer que seja eviado como seja enviado
+-------------------Um serviço que acessa bancos externos
+primeiro vamos add as dependencias do banco de dados, criar banco de dados, e criar instancacias para se conectar
+vc intancia o recebimento de mensagem
+        try(var kafka = new KafkaService<>("ECOMMERCE_NEW_ORDER_4", createrUserService::parse, CreaterUserService.class.getSimpleName(),Order.class, Map.of())){
+private void parse(ConsumerRecord<String,Order> record) throws SQLException {
+        System.out.println("---------------------");
+        System.out.println("Processing new order, checking for fraud");
+        var order  = record.value();
+        System.out.println(order);
+        if(isNewUser(order.getEmail())){
+            service.save(new User (order.getAmount().toString(),order.getOrderId()));
+        }
+
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    configura seu parse, toda vez que ele receber um nova mensagem ele configura
+    para quando vai salvar no banco etc
+-------------Evoluindo serviços e schemas
+----------------------------Usando um servidor http como ponto de entrada
+   </properties>
+    <dependencies>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-servlet</artifactId>
+            <version>9.4.23.v20191118</version>
+        </dependency>
+    </dependencies>
+
+
+    Usando um servidor HTTP como ponto de entrada
+
+    para criar um servidor como faz
+
+
+        var serve = new Server(8080);
+        serve.start();
+        aqui cria o servidor e inicia ele
+   serve.join();
+   aqui espera servidor terminar para eu terminar minha aplicação
+   ele faz esperar
+
+   configurando o servidor:
+var context = new ServletContextHandler();
+aqui configrura contexto
+
+     context.setContextPath("/"); -> que padrão que vou quer raiz
+     que vai ser localhost:8080
+     sempre que acessar esse dominio
+           context.addServlet();-> vamos addservlet
+           que vai fazer
+                   context.addServlet(new ServletHolder(new NewOrderSerVlet()),"/new");
+                  quando acessa o/new vai acessar nossa servlet
+
+  serve.setHandler(context);-> não esquecer deois de set as configuração com setHandler
+
+     AGORA COMO FAZ PARA MANDAR AS REQUISÇÃO
+     CRIA UMA CLASS NewOrderSerVlet
+
+    public class NewOrderSerVlet extends HttpServlet {
+    FAÇA ELA EXTENDS DO HttpServlet E FAZ COM QUE ELA FICA OPICIONAL OS METODOS
+    BOM DEPOIS DISSO
+    VC ADD METODO
+
+      @Override
+        protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            try( var dispatcherorder = new KafkaDispatcher<Order>();var dispatcher = new KafkaDispatcher<Email>()) {
+                    var userId = UUID.randomUUID().toString();
+                    var orderId = UUID.randomUUID().toString();
+                    var amount = BigDecimal.valueOf(Math.random() * 5000 + 1);
+                    var emails ="hagbcd@gmail.com";
+                    var order = new Order(userId,orderId, amount,emails);
+                    var email = new Email("subobject", "body");
+                    dispatcherorder.send("ECOMMERCE_NEW_ORDER_4",emails,order);
+                    dispatcher.send("ECOMMERCE_SEND_EMAIL_1",userId,email);
+
+            }catch (Exception ex){
+                ex.printStackTrace();
+            }
+        }
+
+        fala oq ela precisa fazer ou oq vc quer que ela faça
+
+
+        aqui
+          resp.setStatus(200);
+          resp.getWriter().println("enviado");
+          aqui faz com que mande um status para api
+          e mande um resposta para aparece na tela
+          tem essa maneira tbm
+          resp.setStatus(HttpServletResponse.SC_ACCEPTED);
+
+    agora para ler dados enviado pela server precisa é enviado por parametro
+                var emails =req.getParameter("email"); deste jeito
+                o resp envia resposta
+                e req recebe
+                pesquise desta forma pela url para passar os paraemtros
+                http://localhost:8080/new?email=guilherme@email.com&amount=153
+
+
+  package org.example;
+
+  import javax.servlet.ServletException;
+  import javax.servlet.http.HttpServlet;
+  import javax.servlet.http.HttpServletRequest;
+  import javax.servlet.http.HttpServletResponse;
+  import java.io.IOException;
+  import java.math.BigDecimal;
+  import java.util.UUID;
+
+  public class NewOrderSerVlet extends HttpServlet {
+      @Override
+      protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+          try( var dispatcherorder = new KafkaDispatcher<Order>();var dispatcher = new KafkaDispatcher<Email>()) {
+              var userId = UUID.randomUUID().toString();
+              var orderId = UUID.randomUUID().toString();
+              var amount = new BigDecimal(req.getParameter("amount"));
+              var emails =req.getParameter("email");
+              var order = new Order(userId,orderId, amount,emails);
+              var email = new Email("subobject", "body");
+              dispatcherorder.send("ECOMMERCE_NEW_ORDER_4",emails,order);
+              dispatcher.send("ECOMMERCE_SEND_EMAIL_1",userId,email);
+              System.out.println("enviado");
+              resp.setStatus(HttpServletResponse.SC_ACCEPTED);
+              resp.getWriter().println("enviado");
+          }catch (Exception ex){
+              throw new ServletException();
+          }
+      }
+
+  }
+class esta assim
+
+
+para codigo que se inicia um unica vez
+
+
+    @Override
+    public void init(ServletConfig config) throws ServletException {
+        super.init(config);
+    }
+    pode user esse class
+
+    esse aqui destroi so uma vez
+        @Override
+        public void destroy() {
+            super.destroy();
+            dispatcherorder.close();
+            dispatcher.close();
+        }
+--------------------------------------------------------------------------------------------------------------
+Replicação em cluster
+primeiro vc vai ate a pasta kafka, depois na config do kafka e copia o arquivo
+server.properties
+ cp server.properties server2.properties, deste jeito vc copia pelo terminal de comando
+
+
+ forma que vc tem editar o arquivo
+ Para usar o Bloco de Notas:
+
+ Abra o Explorador de Arquivos e navegue até a pasta config onde o arquivo server2.properties está localizado.
+ Clique com o botão direito do mouse no arquivo server2.properties e selecione "Abrir com".
+ Escolha "Bloco de Notas" na lista de programas.
+ Faça as alterações necessárias no arquivo.
+ Salve o arquivo clicando em "Arquivo" > "Salvar".
+
+----------------------------------oq vc tem que mudar
+dentro do arqui vc primeiro tem mudar id por que assim vamos indetificar mais facil que kafka 2
+broker.id=0 nesse aqui
+broker.id=2
+fica nesse jeito
+logo em seguida
+vamos mudar nome por que não podem usar mesmo diretorio
+############################# Log Basics #############################
+
+# A comma separated list of directories under which to store log files
+log.dirs=c:/tmp/kafka-logs2
+
+por fim mudar a porta que ele inicia
+no win, aparentemente vc tem mudar
+log.dirs=c:/tmp/kafka-logs2 esse aqui em ambos
+
+
+listeners=PLAINTEXT://localhost:9093-> na hora de criar tem add uma nova porta importante recaltar
+tem ser deste jeito, e bom # kafka não conta, tem ser sem
+
+
+
+
+agora para criar uma replica para os dois rodar primeiro vc depois de configura tudo
+
+criar um arquivo json
+{
+  "version": 1,
+  "partitions": [
+    {
+      "topic": "my_topic",
+      "partition": 0,
+      "replicas": [0, 2] // IDs dos brokers que terão réplicas para esta partição
+    },
+    {
+      "topic": "my_topic",
+      "partition": 1,
+      "replicas": [0, 2]
+    }
+    // Adicione mais partições conforme necessário
+  ]
+}
+
+rodar esse comando
+ .\bin\windows\kafka-reassign-partitions.bat --bootstrap-server localhost:9092,localhost:9093 --reassignment-json-file "C:\arquivo\replica.json" --execute
+verficação
+
+oq quer dizer criar uma reprica, quer dizer quando nos criamos um novo broncker
+e ja esta criado um bronker antigo queremos add um producer nesse novo bronker precisamos criar uma nova
+repricar para esse producer saber que tem esse novo broncker duas formas
+opção de criar um novo
+aqui criar novo producer/topic
+.\bin\windows\kafka-topics.bat --create --bootstrap-server localhost:9092,localhost:9093 --replication-factor 2 --partitions 3 --topic my_topic
+ou modificar antigo para modificar primeiro criamos um arquivo json
+{
+  "version": 1,
+  "partitions": [
+    {
+      "topic": "ECOMMERCE_SEND_EMAIL_1",
+      "partition": 0,
+      "replicas": [0, 2],
+      "log_dirs": ["any","any"]
+    },
+    {
+      "topic": "ECOMMERCE_SEND_EMAIL_1",
+      "partition": 1,
+      "replicas": [0, 2],
+      "log_dirs": ["any","any"]
+    }
+    ,
+    {
+      "topic": "ECOMMERCE_SEND_EMAIL_1",
+      "partition": 2,
+      "replicas": [0, 2],
+      "log_dirs": ["any","any"]
+    }
+
+  ]
+}
+
+ "version": 1, -> versão desta mudaças
+  "partitions": [ -> as partição
+    {
+      "topic": "ECOMMERCE_SEND_EMAIL_1",-> nome do topic quer mudar
+      "partition": 0,-> qual partição ela representa
+      "replicas": [0, 2],-> onde vc quer replicar
+      "log_dirs": ["any","any"]-> qual log-dris vc quer usar pode ser null,any que proprio kafka escolhe
+    },
+
+
+    isso no topic
+
+    agora vc pode ir no serve.properitie
+    e add fator de replicação como faz isso vai no serve, serve 1 e serve 2 e add
+
+=======================================================Cluster de 5 brokers e explorando líderes e réplica
+algumas mudanças são nessesarias
+primeiro no offset
+
+############################# Internal Topic Settings  #############################
+# The replication factor for the group metadata internal topics "__consumer_offsets" and "__transaction_state"
+# For anything other than development testing, a value greater than 1 is recommended to ensure availability such as 3.
+offsets.topic.replication.factor=3
+transaction.state.log.replication.factor=3
+transaction.state.log.min.isr=1
+
+default.replication.factor = 3
+
+------------------------------------Acks e reliability
+
+properties.setProperty(ProducerConfig.ACKS_CONFIG,"all");
+isso da a garantia se um producer seu cair, antes de cair ele vai mandar as mensagem para outros
+antes de cair, garantido que outros sempre vão ter as mensagem gravadas, isso prativamente garante
+que nem uma mensagem vai se perder
