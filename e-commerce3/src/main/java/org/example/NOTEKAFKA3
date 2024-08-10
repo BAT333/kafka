@@ -1,0 +1,336 @@
+Simulando a geração de relatórios
+
+
+            dispatcher.send("SEND_MASSAGE_TO_ALL_USERS","USER_GENERATE_READING_REPORT");
+basicamente nos faz um serviço que escuta SEND_MASSAGE_TO_ALL_USERS
+faz for de todos user e retorna para USER_GENERATE_READING_REPORT;
+
+A importância de um CorrelationId
+importancia de para rastrear erros e exceptions, entre outros principal
+
+bom basicamente manda para uma onde vai mandar essa mensagem faz tudo que precisa fazer
+e depois disto manda a mensagem com tudo ja feito para o send que precisa receber
+---------------------A serialização customizada com correlation id e um wrapper
+para enviar id e mensagem customizadas
+bom essa class vai precisar ficar em common-kafka
+bom vamos criar uma class para gera id
+package org.example;
+
+import java.util.UUID;
+
+public class CorrelationId {
+    private final String id;
+
+    public CorrelationId() {
+        this.id = UUID.randomUUID().toString();
+    }
+
+    @Override
+    public String toString() {
+        return "CorrelationId{" +
+                "id='" + id + '\'' +
+                '}';
+    }
+}
+
+
+que vai ser id customizado
+
+aqui para enviar a mensagem  e os tipos
+package org.example;
+
+public class Message <T>{
+    private final CorrelationId correlationId;
+    private final T payLond;
+
+    @Override
+    public String toString() {
+        return "Message{" +
+                "correlationId=" + correlationId +
+                ", payLond=" + payLond +
+                '}';
+    }
+
+    Message(T payLond, CorrelationId correlationId){
+        this.correlationId = correlationId;
+        this.payLond = payLond;
+    }
+}
+agora inves de mandar um valor vamos enviar uma mensagem especifica
+package org.example;
+
+import org.apache.kafka.clients.producer.Callback;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.StringSerializer;
+
+import java.io.Closeable;
+import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+
+public class KafkaDispatcher<T> implements Closeable {
+    private final KafkaProducer<String, Message<T>> producer;
+
+    public KafkaDispatcher(){
+        this.producer = new KafkaProducer<>(properties());
+    }
+
+
+    private static Properties properties() {
+        var properties = new Properties();
+        properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,"127.0.0.1:9092");
+        properties.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        properties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, GsonSerializer.class.getName());
+        properties.setProperty(ProducerConfig.ACKS_CONFIG,"all");
+        return properties;
+    }
+    public void send(String topic, String key, T peyLoad) throws ExecutionException, InterruptedException {
+        var value = new Message<T>(peyLoad,new CorrelationId());
+        var record =new ProducerRecord<>(topic,key,value);
+        Callback callback =(data, ex) -> {
+            if (ex != null) {
+                ex.printStackTrace();
+                return;
+            }
+            System.out.println("Sent with success " + data.topic() + ":::partition " + data.partition() + "/ offset " + data.offset() + "/ timestamp " + data.timestamp());
+        };
+        producer.send(record,callback).get();
+    }
+
+    @Override
+    public void close(){
+        this.producer.close();
+    }
+}
+aqui configuração
+outra atençao que vamos ter para serialização,por que ela consegue tecnicamente mandar
+mas ela não sabe o tipo se é string um objeto ou outra coisa
+para isso precisamos fazer oq
+na class de serialização
+vamos add um
+registerTypeAdapter
+vai registrar e e adptar o tipo que entra como faz isso ?
+
+private final Gson gson = new GsonBuilder().registerTypeAdapter(Message.class,new MessageAdpter()).create();
+deste jeito primeiro vamos mandar class mensagem que precisamos enviar
+depois adptar ela para tipo que precisa ser serializada vamos fazer isso dentro desta
+
+package org.example;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+
+import java.lang.reflect.Type;
+
+public class MessageAdapter implements JsonSerializer<Message> {
+
+    @Override
+    public JsonElement serialize(Message message, Type type, JsonSerializationContext context) {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("type",message.getPayLond().getClass().getName());//add o tipo e propriedade tipo
+        obj.add("payLoad", context.serialize(message.getPayLond()));//aqui serializa o payLond
+        obj.add("correlationId", context.serialize(message.getCorrelationId()));//serializa o id
+        return obj;
+    }
+}
+
+
+
+aqui basicamente serializa uma mensagem dentro da outra, para que não precise mensagem ficar toda confusa
+basicamente retorna uma mensagem bem serializada separando os tipos e type deles para deserealizar
+
+-------------------------------------Deserialização customizada
+public class GsonDeserializer implements Deserializer<Message> {
+    private final Gson gson= new GsonBuilder().registerTypeAdapter(Message.class,new MessageAdapter()).create();
+
+    @Override
+    public Message deserialize(String s, byte[] bytes) {
+        return gson.fromJson(new String(bytes),Message.class);
+    }
+}
+
+aqui fica class de deserealizar
+
+   @Override
+    public Message deserialize(JsonElement jsonElement, Type type, JsonDeserializationContext context) throws JsonParseException {
+        var obj = jsonElement.getAsJsonObject();
+        var payLoandType = obj.get("type").getAsString();
+        var correlationId = (CorrelationId) context.deserialize(obj.get("correlationId"),CorrelationId.class);
+        try {
+            var payLoad = context.deserialize(obj.get("payLoad"),Class.forName(payLoandType));
+            return new Message(payLoad,correlationId);
+        } catch (ClassNotFoundException e) {
+            throw new JsonParseException(e);
+        }
+
+    }
+
+    aqui pega os tipo da class e deserealiza e trasforma no que precisa ser retornado
+---------------------------------------------Implementando o correlation id
+basicamente implementa o classe correletion id que implementa um id novo com nome da class
+
+package org.example;
+
+import java.util.UUID;
+
+public class CorrelationId {
+    private final String id;
+
+    public CorrelationId(String name) {
+        this.id = name +"(" +UUID.randomUUID().toString() +")";
+    }
+
+    @Override
+    public String toString() {
+        return "CorrelationId{" +
+                "id='" + id + '\'' +
+                '}';
+    }
+
+    public CorrelationId continueWith(String correlationId) {
+        return new CorrelationId(id+"-"+correlationId);
+
+    }
+}
+
+-----------------------essa class dispeche
+package org.example;
+
+import org.apache.kafka.clients.producer.Callback;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.StringSerializer;
+
+import java.io.Closeable;
+import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+
+public class KafkaDispatcher<T> implements Closeable {
+    private final KafkaProducer<String, Message<T>> producer;
+
+
+    public KafkaDispatcher() {
+        this.producer = new KafkaProducer<>(properties());
+
+
+    }
+
+
+    private static Properties properties() {
+        var properties = new Properties();
+        properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,"127.0.0.1:9092");
+        properties.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        properties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, GsonSerializer.class.getName());
+        properties.setProperty(ProducerConfig.ACKS_CONFIG,"all");
+        return properties;
+    }
+    public void send(String topic, String key, T peyLoad,CorrelationId correId) throws ExecutionException, InterruptedException {
+        var value = new Message<T>(peyLoad,correId);
+        var record =new ProducerRecord<>(topic,key,value);
+        Callback callback =(data, ex) -> {
+            if (ex != null) {
+                ex.printStackTrace();
+                return;
+            }
+            System.out.println("Sent with success " + data.topic() + ":::partition " + data.partition() + "/ offset " + data.offset() + "/ timestamp " + data.timestamp());
+        };
+        producer.send(record,callback).get();
+    }
+
+    @Override
+    public void close(){
+        this.producer.close();
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--------------------------------Retries e assincronicidade
+paara fazer chamadads assicronas, sicrona
+vamos refatora o serviço de mandar mensagens
+
+   public void send(String topic, String key, T peyLoad,CorrelationId correId) throws ExecutionException, InterruptedException {
+        var value = new Message<T>(peyLoad,correId);
+        var record =new ProducerRecord<>(topic,key,value);
+        Callback callback =(data, ex) -> {
+            if (ex != null) {
+                ex.printStackTrace();
+                return;
+            }
+            System.out.println("Sent with success " + data.topic() + ":::partition " + data.partition() + "/ offset " + data.offset() + "/ timestamp " + data.timestamp());
+        };
+        producer.send(record,callback).get();
+    }
+
+
+    aqui esta fazendo de maneira mais sicrona, esta esperando por uma resposta do usuario, que foi
+    mandada e gravada no banco de dados, mas tem vezes que queremos algo mais rapido e forma assc
+    tipo ir para proxima linha mesmo sem certezas, por que todas mensagens vai ser de forma asscrona
+
+
+AQUI FORMA SINCRONA, VAI ESPERA TER CONFIMAÇÃO QUE FOI GRAVADAS AS INFOS QUE FOI ENVIADA VAI TER GARANTIA DE RETORNO
+    public void send(String topic, String key, T peyLoad,CorrelationId correId) throws ExecutionException, InterruptedException {
+        var future = this.sendAsync(topic,key,peyLoad,correId);
+        future.get();
+    }
+
+    AQUI FORMA ASYNC, QUE NÃO VAI ESPERA UMA RESPOSTA SO VAI ENVIAR
+    public Future<RecordMetadata> sendAsync(String topic, String key, T peyLoad, CorrelationId correId) throws ExecutionException, InterruptedException {
+        var value = new Message<T>(peyLoad,correId);
+        var record =new ProducerRecord<>(topic,key,value);
+        Callback callback =(data, ex) -> {
+            if (ex != null) {
+                ex.printStackTrace();
+                return;
+            }
+            System.out.println("Sent with success " + data.topic() + ":::partition " + data.partition() + "/ offset " + data.offset() + "/ timestamp " + data.timestamp());
+        };
+      return producer.send(record,callback);
+
+
+    }
+
+
+--------------------------------------------Enviando mensagem de deadletter
+ISSO ENVIA UMA MENSAGEM CASO DE ALGUM ERRO,
+
+
+    public void run() throws ExecutionException, InterruptedException {
+        try(var dispatcher =new KafkaDispatcher<>()) {
+            while (true) {
+                var records = consumer.poll(Duration.ofMillis(100));
+                if (!records.isEmpty()) {
+                    System.out.println("Encontrei " + records.count() + " registros");
+                    for (var record : records) {
+                        try {
+                            parse.consume(record);
+                        } catch (Exception e) {
+                            var mensagem = record.value();
+                            dispatcher.send("ECOMMERCE_DEADLETTER", mensagem.getCorrelationId().toString(), new GsonSerializer().serialize("", mensagem), mensagem.getCorrelationId().continueWith("deadLetter"));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    ASSIM FICA ASSIM
+
+
+
