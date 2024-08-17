@@ -1,0 +1,751 @@
+PRIMEIRO TEM ADD A DEPENDENCIA DO KAFKA
+<!-- https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients -->
+<dependency>
+    <groupId>org.apache.kafka</groupId>
+    <artifactId>kafka-clients</artifactId>
+    <version>3.7.1</version>
+</dependency>
+
+
+AQUI PARA MENSAGEM DE LOG
+ <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-simple -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>2.0.13</version>
+        </dependency>
+
+-----------------confi wind
+vamos primeiro abiaxar kafka colocar ele no diretorio c da sua maquina
+logo em seguida abra a pasta que esta kafka e entra no config
+vamos em serve.properties, e configura primeiro a ser configurado é
+log basic
+log.dirs = vamos colocar diretorio central dele que seria
+log.dirs =c:/tmp/kafka-logs1
+
+
+
+
+e depois entra em zookeeper.properties
+configura
+dataDir=c:/tmp/kafka-logs1
+deixar assim
+
+
+
+depois so usar esse comandos
+bin\kafkaserverstart.bat config\server.properties para iniciar wind
+
+
+bin/kafka-server-start.sh config/server.properties linux
+
+kafka
+criar
+.\bin\windows\zookeeper-server-start.bat .\config\zookeeper.properties
+iniciar
+
+.\bin\windows\kafka-server-start.bat .\config\server.properties
+
+
+
+-----------producer
+criar
+
+.\bin\windows\kafka-topics.bat --create --topic myFirstTopic --bootstrap-server localhost:9092
+iniciar
+
+altera numero de partição
+
+.\bin\windows\kafka-topics.bat --alter --bootstrap-server localhost:9092 --topic ECOMMERCE_SEND_EMAIL_1 --partitions 3
+
+iniciar
+
+.\bin\windows\kafka-console-producer.bat --topic myFirstTopic --bootstrap-server localhost:9092
+--------------consumer
+PS C:\kafka> .\bin\windows\kafka-console-consumer.bat --topic myFirstTopic --from-beginning --bootstrap-server localhost:9092
+
+
+
+
+bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic LOJA_NOVO_PEDIDO
+
+bin/kafka-topics.sh --list --bootstrap-server localhost:9082
+
+bin/kafka-console-producer.sh -- broker-list localhost:9092 LOJA_NOVO_PEDIDO
+
+bin/kafka-console-producer.sh -- broker-list localhost:9092 LOJA_NOVO_PEDIDO
+pedido0, 550
+
+bin/kafka-console-producer.sh -- broker-list localhost:9092 LOJA_NOVO_PEDIDO
+pedido0, 550
+pedido1, 330
+pedido2, 67213
+
+bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic LOJA_NOVO_PEDIDO
+
+bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic LOJA_NOVO_PEDIDO --from-beginning
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+VAMOS CRIA NOVO PEDIDO DE COMPRA-> para criar produto em kafka
+
+
+var producer = new  KafkaProducer<String,String>();
+aqui cria novo producer -> precisa dos tipo que ele recebe e retorna
+e precisa variaveis dentro dele, como properties
+
+
+   var producer = new  KafkaProducer<String,String>(properties());
+
+
+    }
+
+    private static Properties properties() {
+        var properties = new Properties();
+        properties.setProperty();
+        return properties;
+    }
+Dentro dele nos tem falar as propriedadaes como onde ele esta rodando
+
+private static Properties properties() {
+        var properties = new Properties();
+        properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,"127.0.0.1:9092");
+        return properties;
+    }
+
+e o local host que ele esta rodando a porta
+
+        properties.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        properties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+
+        tanto a chave quanto o valor String para bit, por que eles recebe em bit e estamos colocando em String
+        precisamos set isso para avisar
+
+
+        e para enviar mensagem como se faz depois de tudo configuraado
+        da maneira mais facil possivel
+        producer.send(record);
+        por que um record, por que mensagem vai ficar armazenada por quanto tempo que vc configura para ela ficar salva
+        1 dia 2 dias, 5 meses e tbm por espaço maximos
+
+
+        ps:importante ter tudo inciado no terminal
+
+kafka
+criar
+.\bin\windows\zookeeper-server-start.bat .\config\zookeeper.properties
+iniciar
+
+.\bin\windows\kafka-server-start.bat .\config\server.properties
+
+
+
+-----------producer
+criar
+
+.\bin\windows\kafka-topics.bat --create --topic myFirstTopic --bootstrap-server localhost:9092
+iniciar
+
+.\bin\windows\kafka-console-producer.bat --topic myFirstTopic --bootstrap-server localhost:9092
+--------------consumer
+PS C:\kafka> .\bin\windows\kafka-console-consumer.bat --topic myFirstTopic --from-beginning --bootstrap-server localhost:9092
+
+
+
+
+bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --replication-factor 1 --partitions 1 --topic LOJA_NOVO_PEDIDO
+
+bin/kafka-topics.sh --list --bootstrap-server localhost:9082
+
+bin/kafka-console-producer.sh -- broker-list localhost:9092 LOJA_NOVO_PEDIDO
+
+bin/kafka-console-producer.sh -- broker-list localhost:9092 LOJA_NOVO_PEDIDO
+pedido0, 550
+
+bin/kafka-console-producer.sh -- broker-list localhost:9092 LOJA_NOVO_PEDIDO
+pedido0, 550
+pedido1, 330
+pedido2, 67213
+
+bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic LOJA_NOVO_PEDIDO
+
+bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic LOJA_NOVO_PEDIDO --from-beginning
+
+
+------------------------------impo
+producer.send(record)  se enviar so com metodo send tem metodo future algo que vai ser execultado daqui a pouco
+de forma assicrona  ele não segura pode ser enviado ou não
+se quiser que segure ate ser enviado vc tem usar metodo get
+que segura a exculção ate ser enviado
+producer.send(record).get, então maneira certa essa
+------------------------------para retorna mensagem de sucesso ou erro
+vc pode passar parametro um que de erro ou que retorna sucesso
+,(data, ex) -> {
+         if (ex != null) {
+             ex.printStackTrace();
+             return;
+         }
+         System.out.println("sucesso enviando " + data.topic() + ":::partition " + data.partition() + "/ offset " + data.offset() + "/ timestamp " + data.timestamp());
+     })
+
+
+ producer.send(record,(data, ex) -> {
+         if (ex != null) {
+             ex.printStackTrace();
+             return;
+         }
+         System.out.println("sucesso enviando " + data.topic() + ":::partition " + data.partition() + "/ offset " + data.offset() + "/ timestamp " + data.timestamp());
+     }).get();
+    }
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+-------------- consumir mensagem
+var consumer =new  KafkaConsumer<String, String>(properties());
+mesma forma de produzir vai ser de consumir
+
+
+ private static Properties properties() {
+        var properties = new Properties();
+        properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,"127.0.0.1:9092");
+        properties.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        properties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+
+        return properties;
+    }
+
+
+    de onde vai consumir
+    consumer.subscribe(Collections.singleton("ECOMMERCE_NEW_ORDER_2"));
+
+
+
+            var consumer =new  KafkaConsumer<String, String>(properties());
+
+            consumer.subscribe(Collections.singleton("ECOMMERCE_NEW_ORDER_2"));
+
+            var recorde = consumer.poll(Duration.ofMillis(1000000));
+            if(recorde.isEmpty()){
+                System.out.println("not a message");
+                return;
+            }
+                  for (var record:recorde){
+                      System.out.println("-----------------------------------------");
+                      System.out.println(record.key());
+                      System.out.println(record.partition());
+                      System.out.println(record.value());
+                      System.out.println(record.offset());
+
+                  }
+
+
+
+Ao tentar executar, recebemos uma mensagem informando a necessidade de especificar um grupo.
+Acontece que podemos ter o detector de fraude em execução, mas também podemos ter outras
+funcionalidades como o envio de e-mails de confirmação de compra ou um sistema de análise de
+dados que precisa acessar as mesmas mensagens.
+
+Portanto, é importante que cada uma dessas funcionalidades receba todas as mensagens disponíveis.
+Isso significa que o FraudDetectorService, o Log Service e qualquer outro serviço que esteja
+escutando esse tópico precisam receber todas as mensagens. Cada um desses serviços é associado
+a um grupo diferente.
+
+Quando criamos um consumidor, precisamos especificar a qual grupo ele pertence. Para isso,
+utilizaremos o ID do grupo (GROUP_ID_CONFIG), que será o nome da nossa classe.
+
+properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, FraudDetectorService.class.getSimpleName());
+
+    private static Properties properties() {
+        var properties = new Properties();
+        properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:9092");
+        properties.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        properties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, FraudDetectorService.class.getSimpleName());
+        return properties;
+    }
+--------------------------------Vários consumidores e produtores
+  var producer = new  KafkaProducer<String,String>(properties());
+     var valeu= "123243,1234,645";
+     var record =new ProducerRecord<String,String>("ECOMMERCE_NEW_ORDER_3",valeu,valeu);
+        var email= "rafaedsasd@gmail,sell";
+        var emailRecord =new ProducerRecord<String,String>("ECOMMERCE_SEND_EMAIL",email,email);
+
+        Callback callback =(data, ex) -> {
+            if (ex != null) {
+                ex.printStackTrace();
+                return;
+            }
+            System.out.println("Sent with success " + data.topic() + ":::partition " + data.partition() + "/ offset " + data.offset() + "/ timestamp " + data.timestamp());
+        };
+        producer.send(record,callback).get();
+        producer.send(emailRecord,callback).get();
+-----------------------------------------------------------------------------------------
+
+        consumer.subscribe(Collections.singleton("ECOMMERCE_SEND_EMAIL"));
+while (true) {
+    var records = consumer.poll(Duration.ofMillis(100));
+    if(!records.isEmpty()) {
+        System.out.println("Encontrei " + records.count() + " registros");
+        for (var record : records) {
+            System.out.println("---------------------");
+            System.out.println("Processing new order, checking for fraud");
+            System.out.println(record.key());
+            System.out.println(record.value());
+            System.out.println(record.partition());
+            System.out.println(record.offset());
+        }
+    }
+
+
+}
+
+
+
+    }
+    private static Properties properties() {
+        var properties = new Properties();
+        properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,"127.0.0.1:9092");
+        properties.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        properties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, EmailSendService.class.getSimpleName());
+        return properties;
+    }
+---------------------------------------
+para criar um novo so precisa copiar e mudar codigo e quem recebe esse email, ou quem vai se registra
+etc, basicamente contro c e contro v  no codigo ja criado
+
+
+AGORA PARA UM RECEBER TODOS OS QUE TODOS SERVIÇO MANDAR
+SE TEM QUE COLOCAR UMA PADRÃO ENTRE ELES
+consumer.subscribe(Pattern.compile("ECOMMERCE.*"));
+TIPO ESSE ECOMMERCE
+ASSIM MESMA COISA QUE OUTRO COSUMER OQ SO MUDAR É PATTERN.COMPILE QUE MOSTRA QUE VC VAI PROCURA POR
+TODOS QUE TEM ESSE COMEÇO
+---------------------------------------Paralelizando e a importância das keys
+vi config/server.properties
+
+Vamos ver que quando se fala de partitions (partições), o número de partições é 1.
+
+num.partitions=1
+
+
+bin/kafta-topics.sh --alter --zookeeper localhost:2181 --topic ECOMMERCE_NEW_ORDER --partitions 3
+
+comando windos
+.\bin\windows\kafka-topics.bat --alter --bootstrap-server localhost:9092 --topic ECOMMERCE_SEND_EMAIL_1 --partitions 3
+
+primeiro vc entra no serve e altera num.partirions
+primeiro nos num.partitions=1  trocamos partitions para quantos queremos
+depois nos altera nossos topic para quantideade maxima de partitions queremos
+configurado pelo terminal de comando
+quem controla que partição vai cair é o key dependo do key chave pode cair em partição diferente
+
+aqui para dar um id unico para cada cosumer, para consumir
+properties.setProperty(ConsumerConfig.CLIENT_ID_CONFIG,FraudDetectorService.class.getSimpleName()+ UUID.randomUUID());
+
+--------------------------------------------------Max poll e dando mais chances para auto commit
+properties.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG,"1");
+configura maximo de poll, isso ajuda para auto commit, e para não duplicar mensagen
+evitar de dar erro
+maximo de record que vão receber
+----------------------------------------Extraindo uma camada de consumidor
+
+package br.com.alura.ecommerce;
+
+public class KafkaService {
+
+}
+primeiro vamos criar uma class padrão para extrair esse codigo
+depois vamos indentificar oq precisamos para consumir esse codigo
+que seria topic dele e parse seria o cosumerRecord<String,String>
+
+ficaria assim
+// código omitido
+
+public static void main(String[] args) {
+    var service = new KafkaService("ECOMMERCE_SEND_EMAIL",
+            parse);
+    service.run();
+    }
+
+// código omitido
+
+depois criar parse que vai receber e como receber
+    private void parse(ConsumerRecord<String,String> record){
+    System.out.println("------------------------------------------");
+    System.out.println("Send email");
+    System.out.println(record.key());
+    System.out.println(record.value());
+    System.out.println(record.partition());
+    System.out.println(record.offset());
+    try {
+            Thread.sleep(1000);
+    } catch (InterruptedException e) {
+            // ignoring
+            e.printStackTrace();
+    }
+    System.out.println("Email sent");
+    }
+    }
+
+e por fim instanciar essa class para usar parse
+  var emailService = new EmailService();
+    var service = new KafkaService("ECOMMERCE_SEND_EMAIL",
+            emailService::parse);
+    service.run();
+-------------------------agora na kafkaService vamos criar o construtor que vai receber isso
+package br.com.alura.ecommerce;
+
+public class KafkaService {
+    public KafkaService(String ecommerce_send_email, Object parse) {
+    }
+}
+
+vamos criar uma class chamada cosumerfunction
+  public KafkaService(String topic, ConsumerFunction parse) {
+    }
+    que vai receber esse parce
+    package br.com.alura.ecommerce;
+
+    import org.apache.kafka.clients.consumer.ConsumerRecord;
+
+    public interface ConsumerFunction {
+        void consume(ConsumerRecord<String, String> record);
+    }
+
+
+depois so cofigura a class kafkaService
+package org.example;
+
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.StringDeserializer;
+
+import java.time.Duration;
+import java.util.Collections;
+import java.util.Properties;
+import java.util.UUID;
+
+public class KafkaService {
+    private final KafkaConsumer<String, String> consumer;
+    private final ConsumerFunction parse;
+
+    public KafkaService(String topic, ConsumerFunction parse) {
+        this.parse = parse;
+         this.consumer = new KafkaConsumer<String, String>(properties());
+        consumer.subscribe(Collections.singletonList(topic));
+       this.run();
+    }
+
+    public void run() {
+        while(true) {
+            var records = consumer.poll(Duration.ofMillis(100));
+            if (!records.isEmpty()) {
+                System.out.println("Encontrei " + records.count() + " registros");
+                for (var record : records) {
+                    parse.consume(record);
+                }
+            }
+        }
+    }
+    private static Properties properties() {
+        var properties = new Properties();
+        properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,"127.0.0.1:9092");
+        properties.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        properties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, KafkaService.class.getSimpleName());
+        properties.setProperty(ConsumerConfig.CLIENT_ID_CONFIG,KafkaService.class.getSimpleName()+ UUID.randomUUID());
+        properties.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG,"1");
+        return properties;
+    }
+}
+---------------------------------Extraindo nossa camada de producer
+da mesma forma vamos começar criando uma class
+
+  String valeu = "padrão";
+        var dispatcher = new KafkaDispatcher();
+        dispatcher.send("ECOMMERCE_NEW_ORDER_3",UUID.randomUUID().toString(),valeu);
+        dispatcher.send("ECOMMERCE_SEND_EMAIL",UUID.randomUUID().toString(),valeu);
+
+
+
+
+package org.example;
+
+import org.apache.kafka.clients.producer.Callback;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.protocol.types.Field;
+import org.apache.kafka.common.serialization.StringSerializer;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+
+public class KafkaDispatcher implements Closeable {
+    private final KafkaProducer<String, String> producer;
+    private ProducerRecord<String, String> record;
+
+    public KafkaDispatcher(){
+        this.producer = new KafkaProducer<String,String>(properties());
+    }
+
+
+    private static Properties properties() {
+        var properties = new Properties();
+        properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,"127.0.0.1:9092");
+        properties.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        properties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+
+        return properties;
+    }
+
+    public void send(String topic, String key, String value) throws ExecutionException, InterruptedException {
+        this.record =new ProducerRecord<>(topic,key,value);
+        Callback callback =(data, ex) -> {
+            if (ex != null) {
+                ex.printStackTrace();
+                return;
+            }
+            System.out.println("Sent with success " + data.topic() + ":::partition " + data.partition() + "/ offset " + data.offset() + "/ timestamp " + data.timestamp());
+        };
+        producer.send(record,callback).get();
+    }
+
+    @Override
+    public void close() throws IOException {
+        this.producer.close();
+    }
+}
+
+
+
+coloquei metodo para fechar automaticamnte close
+------------------------------------------Diretórios do Kafka e Zookeeper
+logDir, no arquivo de configuração, zookeeper properties e no kafka properties
+vc configura, e passa uma pasta para salvar esse arquivo
+------------------------------------------------------Serialização com GSON
+vamos usar conseito de generico
+
+
+primeiro para criar um serializador kafka
+tem implementar metodo serializer do kafka em modo generico
+usamos biblioteca gson para fazer isso, para trasformar em json e para destraformar
+
+public class GsonSerializer<T> implements Serializer<T> {
+    private final Gson gson = new GsonBuilder().create();
+
+    @Override
+    public byte[] serialize(String s, T t) {
+        return gson.toJson(t).getBytes();
+    }
+}
+
+e assim fica Properties
+  private static Properties properties() {
+        var properties = new Properties();
+        properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,"127.0.0.1:9092");
+        properties.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, GsonSerializer.class.getName());
+        properties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, GsonSerializer.class.getName());
+
+        return properties;
+    }
+para trasformar o kafka em modo generico se ja sabe so substiutir coisa por generico
+
+
+-------------------------------Migrando o log
+
+a unica diferença
+ public KafkaService(Pattern topic, ConsumerFunction parse, String simpleName) {
+        this(parse,simpleName);
+        consumer.subscribe(topic);
+        this.run();
+    }
+    construtor que compila com pattern
+---------------------------------------Deserialização customizada
+
+para deserializar é pouco mais dificil com sempre colocando tipo generico, vamos deserealizar
+oq <T>
+
+e mudar tudo que precisa ser desrializado para esse tipo <t>
+  private final KafkaConsumer<String, T> consumer;
+  private final ConsumerFunction<T> parse;
+      private KafkaService(ConsumerFunction<T> parse, String simpleName){
+          this.parse = parse;
+          this.consumer = new KafkaConsumer<>(properties(simpleName));
+      }
+
+e na parte que vai receber ele tbmmm precisa deste objeto
+try ( var kafka = new KafkaService<Order>("ECOMMERCE_NEW_ORDER_3", fraud::parse, FraudDetectorService.class.getSimpleName())){
+    kafka.run();
+}
+    }
+    private void parse(ConsumerRecord<String,Order> record){
+
+    }
+depois disto vc tem implementar a maneira de deserialização
+
+properties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, GsonDeserializer.class.getName());
+aqui nos implementa no proprities
+ private static Properties properties(String simpleName) {
+        var properties = new Properties();
+        properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,"127.0.0.1:9092");
+        properties.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        properties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, GsonDeserializer.class.getName());
+        properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, simpleName);
+        properties.setProperty(ConsumerConfig.CLIENT_ID_CONFIG,UUID.randomUUID().toString());
+        properties.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG,"1");
+        properties.setProperty(GsonDeserializer.TYPE_CONGIG,String.class.getName());
+        return properties;
+    }
+aqui impremeta o deserialzi
+depois de colocar essas class vamos criar ela do zero
+da mesma forma que serialaz
+public class GsonDeserializer<T> implements Deserializer<T> {
+    public static final String TYPE_CONGIG = "site.test.com";
+    private final Gson gson= new GsonBuilder().create();
+    private Class<T> type;
+
+    @Override
+    public void configure(Map<String, ?> configs, boolean isKey) {
+        String typeName =String.valueOf( configs.get(TYPE_CONGIG));
+        try {
+            this.type =(Class<T>) Class.forName(typeName);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public T deserialize(String s, byte[] bytes) {
+        return gson.fromJson(new String(bytes),type);
+    }
+}
+
+vamos implementar uma classe do kafka de deserialize
+public class GsonDeserializer<T> implements Deserializer<T>
+e implementar o metodo
+
+    @Override
+    public T deserialize(String s, byte[] bytes) {
+        return gson.fromJson(new String(bytes),type);
+    }
+
+com estamos mandando serializado em json, vamos deserializar em json
+
+criando o json
+ private final Gson gson= new GsonBuilder().create();
+   @Override
+     public T deserialize(String s, byte[] bytes) {
+         return gson.fromJson(new String(bytes),type);
+     }
+     trasformando m byte para tipo que queremos
+     agora para indetificar o type
+     para fazer isso, no proprio proprities
+     vamos declara metodo
+     properties.setProperty(GsonDeserializer.TYPE_CONFIG,String.class.getName());
+
+GsonDeserializer-> começas com esse inves de custumes por que metodo criado por nos proprios
+ja dentro da class GsonDeserializer
+
+nos declara essa contante
+public static final String TYPE_CONFIG = "org.example";
+com uma string qualquer
+depois disso
+no propria class do deserializer tem metodo configure, nos vamos sobre escrever ela
+  @Override
+    public void configure(Map<String, ?> configs, boolean isKey) {
+
+    }
+    e dentro dela criar
+      @Override
+        public void configure(Map<String, ?> configs, boolean isKey) {
+            String typeName =String.valueOf(configs.get(TYPE_CONFIG)); aqui dizendo nome da clsse de deserilização por padrão
+              try {
+                            this.type =(Class<T>) Class.forName(typeName);
+                        } catch (ClassNotFoundException e) {
+                            throw new RuntimeException(e);
+                        }
+
+        }
+   @Override
+     public void configure(Map<String, ?> configs, boolean isKey) {
+      String typeName =String.valueOf(configs.get(TYPE_CONFIG));
+                    try {
+                     this.type =(Class<T>) Class.forName(typeName);-> aqui pegando classe e retornado ela e dizendo para java que essa clase e do tipo que queremos
+                         } catch (ClassNotFoundException e) {
+                            throw new RuntimeException(e);
+                         }
+     }
+                        Class.forName(typeName);-> ps forName trasforma na classe que queremos
+
+
+        private Class<T> type;-> não esqueça de declare esse atributo
+
+        e por fim usar esse type para formato que queremos deserealizar
+        @Override
+            public T deserialize(String s, byte[] bytes) {
+                return gson.fromJson(new String(bytes),type);
+            }
+depois para programa tipode class que vai ser deserealizada
+      try( var service = new KafkaService<>("ECOMMERCE_SEND_EMAIL_1", emailService::parse,EmailSendService.class.getSimpleName(), Email.class)) {
+      add tipo de class vc quer deserializa no construtor
+      colocar ela com atributo no class kafkaService e
+      depois usa no deserializeibo
+       properties.setProperty(GsonDeserializer.TYPE_CONFIG,type.getName());
+      }
+-----------------------------------------------Lidando com customizaçõesLidando com customizações
+principalemente no log
+oq temos que fazer
+properties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, GsonDeserializer.class.getName());
+vc tem mudar esse para Gson para StringDeserializer
+como se faz isso
+tem varias maneiras, uma delas seria criando biuder
+mas vamos add novo parametro no construtor
+com esse parametro aqui
+ Map.of(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class)
+ como fica costrutor
+    private KafkaService(ConsumerFunction<T> parse, String simpleName, Class<T> type,Map<String,String> configPro){
+        this.parse = parse;
+        this.consumer = new KafkaConsumer<>(properties(type,simpleName,configPro));
+        this.type = type;
+    }
+   vai ficar assim e proprities vai ficar assim
+     private  Properties properties(Class<T> type, String simpleName, Map<String, String> configPro) {
+           var properties = new Properties();
+           properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,"127.0.0.1:9092");
+           properties.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+           properties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, GsonDeserializer.class.getName());
+           properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, simpleName);
+           properties.setProperty(ConsumerConfig.CLIENT_ID_CONFIG,UUID.randomUUID().toString());
+           properties.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG,"1");
+           properties.setProperty(GsonDeserializer.TYPE_CONFIG,type.getName());
+           properties.putAll(configPro);
+           return properties;
+       }
+          properties.putAll(configPro);-> aqui faz com que todas as chaves e valores, acrescentado nessa map
+          seja trocado pela novas chaves e valores com putAll
